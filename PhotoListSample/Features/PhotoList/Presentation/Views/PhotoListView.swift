@@ -18,7 +18,7 @@ struct PhotoListView<T: PhotoListViewModelProtocol>: View {
             switch viewModel.loadingStatus {
             case .idle, .loading:
                 buildLoadingView()
-            case .loaded:
+            case .loaded, .loadingMore:
                 buildPhotoListView()
             case .failed:
                 buildErrorView()
@@ -33,7 +33,6 @@ struct PhotoListView<T: PhotoListViewModelProtocol>: View {
                     },
                     label: {
                         Label("Favorite filter", systemImage: viewModel.filterMode == .favorite ? "star.fill" : "star")
-                        
                     }
                 )
             }
@@ -62,25 +61,31 @@ private extension PhotoListView {
     
     @ViewBuilder
     func buildPhotoListView() -> some View {
-        List(viewModel.filteredPhotos) { photo in
-            HStack {
-                PhotoView(imageUrl: URL(string: photo.thumbnailUrl)).cornerRadius(25)
-                
-                Text(photo.title)
-                    .font(.headline)
-                    .lineLimit(2)
-                    .accessibilityIdentifier("\(Constants.UIComponentIDs.photoListCell)\(photo.id)")
-
-                Spacer()
-
-                Image(systemName: photo.isFavorite ? "star.fill" : "star")
-                    .foregroundStyle(.black)
-                
-                Image(systemName: "chevron.right").foregroundColor(.secondary)
+        List{
+            ForEach(viewModel.filteredPhotos) { photo in
+                PhotoRow(photo: photo)
+                .frame(height: 50)
+                .onTapGesture {
+                    coordinator.push(page: .photoDetail(photoID: photo.id))
+                }
+                .onAppear {
+                    if photo == viewModel.filteredPhotos.last
+                        && viewModel.hasMorePages
+                        && viewModel.loadingStatus != .loadingMore
+                    {
+                        print("Loading more at ID: \(photo.id)")
+                        print("Current item count: \(viewModel.filteredPhotos.count)")
+                        viewModel.loadMorePhotos()
+                    }
+                }
             }
-            .frame(height: 50)
-            .onTapGesture {
-                coordinator.push(page: .photoDetail(photoID: photo.id))
+            
+            if viewModel.loadingStatus == .loadingMore {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
             }
         }
         .listStyle(PlainListStyle())

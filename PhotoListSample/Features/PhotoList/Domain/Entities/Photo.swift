@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Photo: Identifiable, Codable {
+struct Photo: Identifiable, Codable, Equatable {
     let albumId: Int64
     let id: Int64
     let title: String

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 enum PhotoListFilterMode {
     case all
@@ -15,6 +16,7 @@ enum PhotoListFilterMode {
 enum PhotoListViewStatus: Equatable {
     case idle
     case loading
+    case loadingMore
     case loaded
     case failed
 }
@@ -26,8 +28,14 @@ protocol PhotoListViewModelProtocol: ObservableObject {
     var loadingStatus: PhotoListViewStatus { get }
     var searchText: String { get }
     var errorMessage: String?  { get }
+    var photoListInteractor: PhotoListInteractorProtocol { get }
+    
+    var isLoading: Bool { get }
+    var hasMorePages: Bool { get }
+    var currentPage: Int { get }
 
     func fetchPhotos()
+    func loadMorePhotos()
     func toggleFavorite()
     func searchPhotos(text: String)
 }
@@ -36,12 +44,19 @@ class PhotoListViewModel: PhotoListViewModelProtocol {
     private(set) var photos: [Photo] = []
     private(set) var searchText: String = ""
     private(set) var filterMode: PhotoListFilterMode = .all
-    
+
     @Published private(set) var filteredPhotos: [Photo] = []
     @Published private(set) var loadingStatus: PhotoListViewStatus = .idle
     @Published private(set) var errorMessage: String?
     
-    private let photoListInteractor: PhotoListInteractorProtocol
+    //Pagination
+    private(set) var currentPage = 0
+    private let photosPerPage = Constants.Layout.defaultPageSize
+    private var cancellables = Set<AnyCancellable>()
+    private(set) var isLoading = false
+    private(set) var hasMorePages = true
+    
+    private(set) var photoListInteractor: PhotoListInteractorProtocol
     
     init(interactor: PhotoListInteractorProtocol) {
         self.photoListInteractor = interactor
@@ -58,15 +73,20 @@ class PhotoListViewModel: PhotoListViewModelProtocol {
             await self.updateLoadingStatus(.loading)
             
             do {
-                let photos = try await self.photoListInteractor.fetchPhotos()
+                let photos = try await self.photoListInteractor.fetchPhotos(pageNumber: 1, pageSize: photosPerPage)
+                guard photos.count > 0 else {
+                    hasMorePages = false
+                    await self.updateLoadingStatus(.loaded)
+                    return
+                }
+                
+                currentPage = 1
+                hasMorePages = true
                 self.photos = photos
                 
                 await self.updateLoadingStatus(.loaded)
                 let filteredPhotos = photos
                 await self.updateFilteredPhotos(filteredPhotos)
-                
-                //TODO: Consider to enhance this with pagination/load more
-                
             } catch NetworkError.requestFailed(_, _) {
                 await self.updateLoadingStatus(.failed)
                 await self.updateErrorMessage("Something went wrong with the photo service. Please try again later")
@@ -80,6 +100,43 @@ class PhotoListViewModel: PhotoListViewModelProtocol {
                 await self.updateErrorMessage("Unknown error: " + error.localizedDescription)
             }
         }
+    }
+    
+    func loadMorePhotos() {
+        guard hasMorePages, loadingStatus != .loadingMore, loadingStatus != .loading  else { return }
+        
+        Task {
+            await self.updateLoadingStatus(.loadingMore)
+            
+            do {
+                let photos = try await self.photoListInteractor.fetchPhotos(pageNumber: currentPage + 1, pageSize: photosPerPage)
+                guard photos.count > 0 else {
+                    hasMorePages = false
+                    await self.updateLoadingStatus(.loaded)
+                    return
+                }
+                
+                currentPage += 1
+                hasMorePages = true
+                self.photos.append(contentsOf: photos)
+                
+                await self.updateLoadingStatus(.loaded)
+//                self.photos.append(contentsOf: photos)
+                await self.updateFilteredPhotos(generateFilteredPhotoList())
+            } catch NetworkError.requestFailed(_, _) {
+                await self.updateLoadingStatus(.failed)
+                await self.updateErrorMessage("Something went wrong with the photo service. Please try again later")
+            } catch NetworkError.notConnected {
+                await self.updateLoadingStatus(.failed)
+                await self.updateErrorMessage("No internet connection")
+            } catch {
+                await self.updateLoadingStatus(.failed)
+                
+                //Just show the localizedDescription for demo
+                await self.updateErrorMessage("Unknown error: " + error.localizedDescription)
+            }
+        }
+        
     }
 
     func toggleFavorite() {

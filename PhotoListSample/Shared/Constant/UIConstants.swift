@@ -11,6 +11,7 @@ import SwiftUICore
 extension Constants {
     enum Layout {
         static let defaultPadding: CGFloat = 16
+        static let defaultPageSize: Int = 20
     }
     
     enum Colors {

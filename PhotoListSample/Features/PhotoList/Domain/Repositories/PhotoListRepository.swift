@@ -8,7 +8,7 @@
 import Foundation
 
 protocol PhotoListRepositoryProtocol {
-    func fetchPhotos() async throws -> [Photo]
+    func fetchPhotos(pageNumber: Int, pageSize: Int) async throws -> [Photo]
 }
 
 final class PhotoListRepository: PhotoListRepositoryProtocol {
@@ -20,16 +20,16 @@ final class PhotoListRepository: PhotoListRepositoryProtocol {
         self.remoteDataSource = remoteDataSource
     }
     
-    func fetchPhotos() async throws -> [Photo] {
+    func fetchPhotos(pageNumber: Int, pageSize: Int) async throws -> [Photo] {
         do {
             //Load cache data first
-            var photos = try await localDataSource.loadPhotos()
+            var photos = try await localDataSource.loadPhotos(pageNumber: pageNumber, pageSize: pageSize)
             if photos.count > 0 {
                 return photos
             }
             
             //Fetch remote data
-            photos = try await remoteDataSource.loadPhotos()
+            photos = try await remoteDataSource.loadPhotos(pageNumber: pageNumber, pageSize: pageSize)
             
             //Save the photos to local database
             try await localDataSource.savePhotos(photos)

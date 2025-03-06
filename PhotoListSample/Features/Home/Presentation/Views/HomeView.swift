@@ -26,7 +26,7 @@ struct HomeView: View {
             .accessibilityIdentifier(Constants.UIComponentIDs.goToPhotoListButton)
         }
         .padding(Constants.Layout.defaultPadding)
-        .navigationTitle("Photo App")
+        .navigationTitle("Photo List Sample App")
     }
 }
 

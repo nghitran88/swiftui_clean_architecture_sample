@@ -10,7 +10,7 @@ import CoreData
 
 protocol PhotoListLocalDataSourceProtocol {
     func savePhotos(_ photos: [Photo]) async throws -> Void
-    func loadPhotos() async throws -> [Photo]
+    func loadPhotos(pageNumber: Int, pageSize: Int) async throws -> [Photo]
 }
 
 final class PhotoListLocalDataSource: PhotoListLocalDataSourceProtocol {
@@ -45,11 +45,14 @@ final class PhotoListLocalDataSource: PhotoListLocalDataSourceProtocol {
         }
     }
     
-    func loadPhotos() async throws -> [Photo] {
+    func loadPhotos(pageNumber: Int, pageSize: Int) async throws -> [Photo] {
         try await withCheckedThrowingContinuation { continuation in
             coreDataStack.performBackgroundTask { context in
                 do {
-                    let cdPhotos = try self.fetchAllPhotos(in: context)
+                    let cdPhotos = try self.fetchPhotos(
+                        pageNumber: pageNumber,
+                        pageSize: pageSize,
+                        in: context)
                     let photos = cdPhotos.compactMap({ $0.toDomain() })
                     continuation.resume(returning: photos)
                 } catch {
@@ -68,6 +71,21 @@ private extension PhotoListLocalDataSource {
         let sortDescriptor = NSSortDescriptor(key: "id", ascending: true)
         let sortDescriptors = [sortDescriptor]
         fetchRequest.sortDescriptors = sortDescriptors
+        
+        let cdPhotos = try context.fetch(fetchRequest)
+        return cdPhotos
+    }
+    
+    func fetchPhotos(pageNumber: Int, pageSize: Int, in context: NSManagedObjectContext) throws -> [CDPhoto] {
+        let fetchRequest = CDPhoto.fetchRequest()
+        let sortDescriptor = NSSortDescriptor(key: "id", ascending: true)
+        let sortDescriptors = [sortDescriptor]
+        fetchRequest.sortDescriptors = sortDescriptors
+        
+        // Calculate the offset for pagination
+        let offset = (pageNumber - 1) * pageSize
+        fetchRequest.fetchOffset = offset
+        fetchRequest.fetchLimit = pageSize
         
         let cdPhotos = try context.fetch(fetchRequest)
         return cdPhotos

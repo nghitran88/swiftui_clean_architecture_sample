@@ -8,7 +8,7 @@
 import Foundation
 
 protocol PhotoListInteractorProtocol {
-    func fetchPhotos() async throws -> [Photo]
+    func fetchPhotos(pageNumber: Int, pageSize: Int) async throws -> [Photo]
     func loadPhotoDetail(withID id: Int64) async throws -> Photo?
 }
 
@@ -21,9 +21,9 @@ final class PhotoListInteractor: PhotoListInteractorProtocol {
         self.loadPhotoDetailUseCase = loadPhotoDetailUseCase
     }
 
-    func fetchPhotos() async throws -> [Photo] {
+    func fetchPhotos(pageNumber: Int, pageSize: Int) async throws -> [Photo] {
         do {
-            return try await fetchPhotosUseCase.execute()
+            return try await fetchPhotosUseCase.execute(pageNumber: pageNumber, pageSize: pageSize)
         } catch {
             throw error
         }

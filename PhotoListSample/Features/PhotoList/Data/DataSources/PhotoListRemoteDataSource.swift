@@ -8,7 +8,7 @@
 import Foundation
 
 protocol PhotoListRemoteDataSourceProtocol {
-    func loadPhotos() async throws -> [Photo]
+    func loadPhotos(pageNumber: Int, pageSize: Int) async throws -> [Photo]
 }
 
 final class PhotoListRemoteDataSource: PhotoListRemoteDataSourceProtocol {
@@ -18,21 +18,21 @@ final class PhotoListRemoteDataSource: PhotoListRemoteDataSourceProtocol {
         self.networkService = networkService
     }
     
-    func loadPhotos() async throws -> [Photo] {
-        let photoDTOs = try await fetchPhotos()
+    func loadPhotos(pageNumber: Int, pageSize: Int) async throws -> [Photo] {
+        let photoDTOs = try await fetchPhotos(pageNumber: pageNumber, pageSize: pageSize)
         return photoDTOs.compactMap { $0.toDomain() }
     }
 }
 
 private extension PhotoListRemoteDataSource {
-    func fetchPhotos() async throws -> [PhotoRemoteDTO] {
-        let networkConfig = PhotoListAPIConfig.list
+    func fetchPhotos(pageNumber: Int, pageSize: Int) async throws -> [PhotoRemoteDTO] {
+        let networkConfig = PhotoListAPIConfig.list(pageNumber: pageNumber, pageSize: pageSize)
         return try await networkService.request(config: networkConfig)
     }
 }
 
 enum PhotoListAPIConfig: NetworkConfig {
-    case list
+    case list(pageNumber: Int, pageSize: Int)
 
     var path: String {
         Constants.API.baseURL
@@ -46,7 +46,7 @@ enum PhotoListAPIConfig: NetworkConfig {
 
     var task: HTTPTask {
         switch self {
-        case .list: .request
+        case .list(let pageNumber, let pageSize): .requestParameters(["_page": pageNumber, "_limit": pageSize])
         }
     }
 
