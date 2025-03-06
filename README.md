@@ -1,7 +1,7 @@
 iOS SwiftUI `Photos` App
 ============================================
 
-This is a sample of iOS app that applies Clean Architecture and MVVM-C
+This is an iOS sample app that applies Clean Architecture and MVVM-C
 
 ## Requirement:
 1. `Photos List` page:
