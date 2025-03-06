@@ -10,15 +10,12 @@ This is an iOS sample app that applies Clean Architecture and MVVM-C
 	3. Implement the functionality: 
 	    1. Search;
 	    2. Switch between all list and the favorites list;
-        3. Handle infinity loading with 20 items per pages.
+        3. Handle infinity loading with 20 items per pages;
 2. `Photo Detail` page: 
     1. Add to favorites;
     2. Remove from favorites;
 3. Sample unit tests for the photo list view model;
 4. Sample automation test for the photo list screen;
 
-![Photos List](./Images/search.gif)
-![Photos Detail](./Images/favorite.gif)
-
 ## Install
-Open the `Photos.xcodeproj` in the root directory with Xcode.
+Open the `PhotoListSample.xcodeproj` in the root directory with Xcode.
