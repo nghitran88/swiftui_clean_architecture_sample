@@ -35,7 +35,7 @@ protocol PhotoListViewModelProtocol: ObservableObject {
     var currentPage: Int { get }
 
     func fetchPhotos()
-    func loadMorePhotos()
+    func handleLoadingMorePhotos()
     func toggleFavorite()
     func searchPhotos(text: String)
 }
@@ -102,8 +102,13 @@ class PhotoListViewModel: PhotoListViewModelProtocol {
         }
     }
     
-    func loadMorePhotos() {
-        guard hasMorePages, loadingStatus != .loadingMore, loadingStatus != .loading  else { return }
+    func handleLoadingMorePhotos() {
+        guard hasMorePages,
+                loadingStatus != .loadingMore,
+                loadingStatus != .loading,
+                searchText.isEmpty,
+              filterMode == .all
+        else { return }
         
         Task {
             await self.updateLoadingStatus(.loadingMore)
@@ -121,7 +126,6 @@ class PhotoListViewModel: PhotoListViewModelProtocol {
                 self.photos.append(contentsOf: photos)
                 
                 await self.updateLoadingStatus(.loaded)
-//                self.photos.append(contentsOf: photos)
                 await self.updateFilteredPhotos(generateFilteredPhotoList())
             } catch NetworkError.requestFailed(_, _) {
                 await self.updateLoadingStatus(.failed)

@@ -69,13 +69,8 @@ private extension PhotoListView {
                     coordinator.push(page: .photoDetail(photoID: photo.id))
                 }
                 .onAppear {
-                    if photo == viewModel.filteredPhotos.last
-                        && viewModel.hasMorePages
-                        && viewModel.loadingStatus != .loadingMore
-                    {
-                        print("Loading more at ID: \(photo.id)")
-                        print("Current item count: \(viewModel.filteredPhotos.count)")
-                        viewModel.loadMorePhotos()
+                    if photo == viewModel.filteredPhotos.last {
+                        viewModel.handleLoadingMorePhotos()
                     }
                 }
             }
